@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2 Radar Hack - de_ancient</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .toggle-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #a4b0be;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-switch.active {
+            background: #4ecdc4;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            padding: 20px;
+            max-width: 1400px;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            margin-top: 60px;
+        }
+
+        .team-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 250px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .team-section.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .player-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .terrorist .player-name {
+            color: #ff6b6b;
+        }
+
+        .counter-terrorist .player-name {
+            color: #4ecdc4;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4757 0%, #ffa502 50%, #2ed573 100%);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .weapon-name {
+            font-size: 12px;
+            color: #a4b0be;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .radar-container {
+            position: relative;
+            width: 512px;
+            height: 512px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .radar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .radar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .player-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .terrorist-dot {
+            background: #ff6b6b;
+        }
+
+        .counter-terrorist-dot {
+            background: #4ecdc4;
+        }
+
+        .player-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            white-space: nowrap;
+            transform: translateX(-50%);
+            left: 50%;
+        }
+
+        .player-label.top {
+            top: -20px;
+        }
+
+        .player-label.bottom {
+            bottom: -20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terrorist-title {
+            color: #ff6b6b;
+        }
+
+        .counter-terrorist-title {
+            color: #4ecdc4;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .player-dot.active {
+            animation: pulse 2s infinite;
+        }
+
+        /* ESP Mode */
+        .esp-mode .team-section {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .esp-mode .radar-container {
+            width: 90vw;
+            max-width: 800px;
+            height: 90vw;
+            max-height: 800px;
+        }
+
+        /* Mobile mode */
+        @media (max-width: 768px), .mobile-mode {
+            .container {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            .team-section {
+                flex-direction: row;
+                flex-wrap: wrap;
+                width: 100%;
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .player-card {
+                width: 160px;
+                padding: 10px;
+            }
+
+            .radar-container {
+                width: 90vw;
+                height: 90vw;
+                max-width: 400px;
+                max-height: 400px;
+            }
+
+            .controls {
+                top: 10px;
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .player-name {
+                font-size: 14px;
+            }
+
+            .weapon-name {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .player-card {
+                width: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="toggle-group">
+            <div class="toggle-label">Mode</div>
+            <div class="toggle-switch" id="modeToggle">
+                <div class="toggle-slider"></div>
+            </div>
+            <div class="toggle-label">ESP / Info</div>
+        </div>
+        <div class="toggle-group">
+            <div class="toggle-label">Platform</div>
+            <div class="toggle-switch" id="platformToggle">
+                <div class="toggle-slider"></div>
+            </div>
+            <div class="toggle-label">PC / Mobile</div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div class="team-section terrorist" id="terroristSection">
+            <h2 class="section-title terrorist-title">Terrorists</h2>
+            <div class="player-card">
+                <div class="player-name">Player 1</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 85%"></div>
+                </div>
+                <div class="weapon-name">AK-47</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 2</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 65%"></div>
+                </div>
+                <div class="weapon-name">AWP</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 3</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 100%"></div>
+                </div>
+                <div class="weapon-name">M4A4</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 4</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 45%"></div>
+                </div>
+                <div class="weapon-name">Glock</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 5</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 75%"></div>
+                </div>
+                <div class="weapon-name">MAC-10</div>
+            </div>
+        </div>
+
+        <div class="radar-container">
+            <img src="de_ancient_radar.png" alt="de_ancient radar" class="radar-image">
+            <div class="radar-overlay" id="radarOverlay">
+                <div class="player-dot terrorist-dot active" data-player="terrorist-1" style="left: 20%; top: 30%;"></div>
+                <div class="player-dot terrorist-dot" data-player="terrorist-2" style="left: 35%; top: 45%;"></div>
+                <div class="player-dot terrorist-dot" data-player="terrorist-3" style="left: 25%; top: 60%;"></div>
+                <div class="player-dot terrorist-dot" data-player="terrorist-4" style="left: 40%; top: 25%;"></div>
+                <div class="player-dot terrorist-dot" data-player="terrorist-5" style="left: 30%; top: 40%;"></div>
+                
+                <div class="player-dot counter-terrorist-dot active" data-player="ct-1" style="left: 70%; top: 40%;"></div>
+                <div class="player-dot counter-terrorist-dot" data-player="ct-2" style="left: 65%; top: 55%;"></div>
+                <div class="player-dot counter-terrorist-dot" data-player="ct-3" style="left: 80%; top: 30%;"></div>
+                <div class="player-dot counter-terrorist-dot" data-player="ct-4" style="left: 75%; top: 65%;"></div>
+                <div class="player-dot counter-terrorist-dot" data-player="ct-5" style="left: 85%; top: 45%;"></div>
+            </div>
+        </div>
+
+        <div class="team-section counter-terrorist" id="ctSection">
+            <h2 class="section-title counter-terrorist-title">Counter-Terrorists</h2>
+            <div class="player-card">
+                <div class="player-name">Player 1</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 90%"></div>
+                </div>
+                <div class="weapon-name">M4A1-S</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 2</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 55%"></div>
+                </div>
+                <div class="weapon-name">AWP</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 3</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 80%"></div>
+                </div>
+                <div class="weapon-name">FAMAS</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 4</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 35%"></div>
+                </div>
+                <div class="weapon-name">USP-S</div>
+            </div>
+            <div class="player-card">
+                <div class="player-name">Player 5</div>
+                <div class="health-bar">
+                    <div class="health-fill" style="width: 95%"></div>
+                </div>
+                <div class="weapon-name">MP7</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isESPMode = false;
+        let isMobileMode = false;
+
+        const modeToggle = document.getElementById('modeToggle');
+        const platformToggle = document.getElementById('platformToggle');
+        const mainContainer = document.getElementById('mainContainer');
+        const terroristSection = document.getElementById('terroristSection');
+        const ctSection = document.getElementById('ctSection');
+        const radarOverlay = document.getElementById('radarOverlay');
+
+        // Player data for ESP mode
+        const playerData = {
+            'terrorist-1': { name: 'Terrorist1', health: 85 },
+            'terrorist-2': { name: 'Terrorist2', health: 65 },
+            'terrorist-3': { name: 'Terrorist3', health: 100 },
+            'terrorist-4': { name: 'Terrorist4', health: 45 },
+            'terrorist-5': { name: 'Terrorist5', health: 75 },
+            'ct-1': { name: 'Counter1', health: 90 },
+            'ct-2': { name: 'Counter2', health: 55 },
+            'ct-3': { name: 'Counter3', health: 80 },
+            'ct-4': { name: 'Counter4', health: 35 },
+            'ct-5': { name: 'Counter5', health: 95 }
+        };
+
+        function updateESPMode() {
+            if (isESPMode) {
+                mainContainer.classList.add('esp-mode');
+                createPlayerLabels();
+            } else {
+                mainContainer.classList.remove('esp-mode');
+                removePlayerLabels();
+            }
+        }
+
+        function createPlayerLabels() {
+            removePlayerLabels(); // Remove existing labels first
+            
+            const dots = radarOverlay.querySelectorAll('.player-dot');
+            dots.forEach(dot => {
+                const playerId = dot.getAttribute('data-player');
+                const player = playerData[playerId];
+                
+                if (player) {
+                    // Create name label
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'player-label top';
+                    nameLabel.textContent = player.name;
+                    nameLabel.style.left = dot.style.left;
+                    nameLabel.style.top = `calc(${dot.style.top} - 20px)`;
+                    
+                    // Create health label
+                    const healthLabel = document.createElement('div');
+                    healthLabel.className = 'player-label bottom';
+                    healthLabel.textContent = `${player.health}HP`;
+                    healthLabel.style.left = dot.style.left;
+                    healthLabel.style.top = `calc(${dot.style.top} + 15px)`;
+                    
+                    radarOverlay.appendChild(nameLabel);
+                    radarOverlay.appendChild(healthLabel);
+                }
+            });
+        }
+
+        function removePlayerLabels() {
+            const labels = radarOverlay.querySelectorAll('.player-label');
+            labels.forEach(label => label.remove());
+        }
+
+        function updatePlatformMode() {
+            if (isMobileMode) {
+                mainContainer.classList.add('mobile-mode');
+            } else {
+                mainContainer.classList.remove('mobile-mode');
+            }
+        }
+
+        modeToggle.addEventListener('click', () => {
+            isESPMode = !isESPMode;
+            modeToggle.classList.toggle('active', isESPMode);
+            updateESPMode();
+        });
+
+        platformToggle.addEventListener('click', () => {
+            isMobileMode = !isMobileMode;
+            platformToggle.classList.toggle('active', isMobileMode);
+            updatePlatformMode();
+        });
+
+        // Анимация обновления HP
+        function updateHealth() {
+            const healthBars = document.querySelectorAll('.health-fill');
+            healthBars.forEach(bar => {
+                const newHealth = Math.random() * 100;
+                bar.style.width = newHealth + '%';
+            });
+            
+            // Update ESP mode health labels
+            if (isESPMode) {
+                Object.keys(playerData).forEach(playerId => {
+                    playerData[playerId].health = Math.floor(Math.random() * 100);
+                });
+                createPlayerLabels();
+            }
+        }
+
+        // Обновление позиций игроков на радаре
+        function updateRadarPositions() {
+            const dots = radarOverlay.querySelectorAll('.player-dot');
+            dots.forEach(dot => {
+                const currentLeft = parseFloat(dot.style.left);
+                const currentTop = parseFloat(dot.style.top);
+                
+                // Keep dots within radar boundaries (5% to 95%)
+                const newLeft = Math.max(5, Math.min(95, currentLeft + (Math.random() - 0.5) * 8));
+                const newTop = Math.max(5, Math.min(95, currentTop + (Math.random() - 0.5) * 8));
+                
+                dot.style.left = newLeft + '%';
+                dot.style.top = newTop + '%';
+            });
+            
+            // Update ESP labels if active
+            if (isESPMode) {
+                createPlayerLabels();
+            }
+        }
+
+        // Случайное обновление данных
+        setInterval(() => {
+            if (Math.random() > 0.7) {
+                updateHealth();
+            }
+            if (Math.random() > 0.5) {
+                updateRadarPositions();
+            }
+        }, 2000);
+
+        // Добавление эффекта наведения на карточки игроков
+        document.querySelectorAll('.player-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Initialize
+        updateESPMode();
+        updatePlatformMode();
+    </script>
+</body>
+</html>
